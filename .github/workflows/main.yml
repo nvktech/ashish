@@ -83,19 +83,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-v2
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-v3
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: Clear stale pub cache entries
+      - name: Clear pub cache to force fresh downloads
         run: |
           set -e
-          rm -rf ~/.pub-cache/hosted/pub.dev/permission_handler*
-          rm -rf ~/.pub-cache/hosted/pub.dev/printing*
+          rm -rf ~/.pub-cache/hosted/pub.dev/*
 
       - name: Install Dart/Flutter dependencies
         working-directory: ${{ env.APP_DIR }}
-        run: flutter pub get
+        run: |
+          set -e
+          rm -f pubspec.lock
+          flutter pub get
 
       - name: Clean and regenerate iOS
         working-directory: ${{ env.APP_DIR }}

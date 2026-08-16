@@ -91,8 +91,10 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
-          xcrun xcode-select --reset || true
-          find . -name "*.xcconfig" -type f -not -path "./Pods/*" -exec grep -l "FLUTTER" {} \; | head -n 1 | xargs -I {} sed -i '' 's/#include.*Flutter.*//g' {} || true
+          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.podspec Flutter/Flutter.framework
+          rm -rf Pods-Runner-frameworks.sh
+          find . -name "*.xcconfig" -type f ! -path "./Pods/*" -exec sed -i '' '/^#include.*Flutter/d; /^#include.*Generated/d; /^#include.*Pods/d' {} + || true
+          rm -rf ../build/ios/
 
       - name: Install iOS pods
         working-directory: ${{ env.APP_DIR }}/ios
@@ -101,18 +103,18 @@ jobs:
           export PATH="$HOME/flutter/bin:$PATH"
           pod install --repo-update
 
-      - name: Regenerate iOS project configuration
-        working-directory: ${{ env.APP_DIR }}
+      - name: Configure Flutter framework linkage
+        working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
-          rm -rf ios/Runner.xcworkspace
-          rm -rf ios/Pods
-          rm -rf ios/Podfile.lock
-          flutter clean
-          flutter pub get
-          flutter precache --ios
-          cd ios && pod install --repo-update && cd ..
+          pod install --repo-update
+          if [ ! -f Pods/Flutter/Flutter.framework/Flutter ]; then
+            echo "Flutter framework not found in Pods, regenerating..."
+            rm -rf Pods Podfile.lock .symlinks
+            cd .. && flutter pub get && cd ios
+            pod install --repo-update
+          fi
 
       - name: Verify iOS project exists
         run: |

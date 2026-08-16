@@ -96,6 +96,7 @@ jobs:
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
           rm -rf ios/Pods ios/Podfile.lock ios/.symlinks ios/Runner.xcworkspace
           rm -rf ios/Flutter/Flutter.podspec ios/Flutter/Flutter.framework
           rm -rf build/

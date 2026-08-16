@@ -77,6 +77,7 @@ jobs:
           rm -rf ios/.symlinks
           rm -rf ios/Flutter/Flutter.podspec
           rm -rf ios/Flutter/Flutter.framework
+          rm -rf ios/Runner.xcworkspace
           rm -rf build/
           flutter clean
           flutter pub get
@@ -91,29 +92,34 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
-          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.podspec Flutter/Flutter.framework
-          rm -rf Pods-Runner-frameworks.sh
-          find . -name "*.xcconfig" -type f ! -path "./Pods/*" -exec sed -i '' '/^#include.*Flutter/d; /^#include.*Generated/d; /^#include.*Pods/d' {} + || true
-          rm -rf ../build/ios/
+          rm -f Podfile.lock
+          rm -rf Pods
+          rm -rf .symlinks
+          find . -name "*.xcconfig" ! -path "./Pods/*" -type f -exec sed -i '' '/#include.*Flutter/d' {} + 2>/dev/null || true
+          find . -name "*.xcconfig" ! -path "./Pods/*" -type f -exec sed -i '' '/#include.*Generated/d' {} + 2>/dev/null || true
+          find . -name "*.xcconfig" ! -path "./Pods/*" -type f -exec sed -i '' '/#include.*Pods/d' {} + 2>/dev/null || true
 
       - name: Install iOS pods
         working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
-          pod install --repo-update
+          pod install --repo-update --no-ansi
 
-      - name: Configure Flutter framework linkage
+      - name: Final CocoaPods configuration
         working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
-          pod install --repo-update
-          if [ ! -f Pods/Flutter/Flutter.framework/Flutter ]; then
-            echo "Flutter framework not found in Pods, regenerating..."
-            rm -rf Pods Podfile.lock .symlinks
-            cd .. && flutter pub get && cd ios
-            pod install --repo-update
+          if [ ! -f Podfile ]; then
+            echo "Podfile not found!"
+            exit 1
+          fi
+          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.podspec Flutter/Flutter.framework
+          pod install --repo-update --no-ansi
+          if [ ! -d "Pods/Flutter/Flutter.framework" ]; then
+            echo "ERROR: Flutter framework not found in Pods!"
+            exit 1
           fi
 
       - name: Verify iOS project exists

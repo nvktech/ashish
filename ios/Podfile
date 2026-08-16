@@ -40,6 +40,9 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
+      config.build_settings['FRAMEWORK_SEARCH_PATHS'] = '$(inherited) $(FLUTTER_ROOT)/bin/cache/artifacts/engine/ios'
+      config.build_settings['OTHER_LDFLAGS'] = '$(inherited)'
+
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_LOCATION=1',

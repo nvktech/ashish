@@ -83,9 +83,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}-v2
           restore-keys: |
             ${{ runner.os }}-pub-
+
+      - name: Clear stale pub cache entries
+        run: |
+          set -e
+          rm -rf ~/.pub-cache/hosted/pub.dev/permission_handler*
+          rm -rf ~/.pub-cache/hosted/pub.dev/printing*
 
       - name: Install Dart/Flutter dependencies
         working-directory: ${{ env.APP_DIR }}

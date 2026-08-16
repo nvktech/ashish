@@ -16,6 +16,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Remove conflicting Xcode base configs
+        run: |
+          set -e
+
+          APP_DIR="."
+          if [ ! -f "pubspec.yaml" ]; then
+            found="$(find . -maxdepth 3 -type f -name pubspec.yaml | head -n 1 || true)"
+            if [ -n "$found" ]; then
+              APP_DIR="$(dirname "$found")"
+            fi
+          fi
+
+          APP_DIR="${APP_DIR#./}"
+          if [ -n "$APP_DIR" ] && [ "$APP_DIR" != "." ]; then
+            cd "$APP_DIR"
+          fi
+
+          pbxproj="ios/Runner.xcodeproj/project.pbxproj"
+          if [ -f "$pbxproj" ]; then
+            python3 -c "import pathlib, re; p = pathlib.Path('ios/Runner.xcodeproj/project.pbxproj'); text = p.read_text(encoding='utf-8'); updated = re.sub(r'(?m)^\\s*baseConfigurationReference\\s*=\\s*[^;]+;\\s*$', '', text); (p.write_text(updated, encoding='utf-8') if updated != text else None); print('Removed conflicting baseConfigurationReference entries from Runner.xcodeproj/project.pbxproj' if updated != text else 'No conflicting baseConfigurationReference entries found in Runner.xcodeproj/project.pbxproj')"
+          else
+            echo "No Runner.xcodeproj/project.pbxproj found; skipping cleanup."
+          fi
+
       - name: Debug repo layout
         run: |
           echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
@@ -67,17 +91,13 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         run: flutter pub get
 
-      - name: Clean iOS build artifacts
+      - name: Clean and regenerate iOS
         working-directory: ${{ env.APP_DIR }}
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
-          rm -rf ios/Pods
-          rm -rf ios/Podfile.lock
-          rm -rf ios/.symlinks
-          rm -rf ios/Flutter/Flutter.podspec
-          rm -rf ios/Flutter/Flutter.framework
-          rm -rf ios/Runner.xcworkspace
+          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks ios/Runner.xcworkspace
+          rm -rf ios/Flutter/Flutter.podspec ios/Flutter/Flutter.framework
           rm -rf build/
           flutter clean
           flutter pub get
@@ -88,40 +108,12 @@ jobs:
           set -e
           sudo gem install cocoapods --no-document
 
-      - name: Fix iOS project configuration
-        working-directory: ${{ env.APP_DIR }}/ios
-        run: |
-          set -e
-          rm -f Podfile.lock
-          rm -rf Pods
-          rm -rf .symlinks
-          find . -name "*.xcconfig" ! -path "./Pods/*" -type f -exec sed -i '' '/#include.*Flutter/d' {} + 2>/dev/null || true
-          find . -name "*.xcconfig" ! -path "./Pods/*" -type f -exec sed -i '' '/#include.*Generated/d' {} + 2>/dev/null || true
-          find . -name "*.xcconfig" ! -path "./Pods/*" -type f -exec sed -i '' '/#include.*Pods/d' {} + 2>/dev/null || true
-
       - name: Install iOS pods
         working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
           pod install --repo-update --no-ansi
-
-      - name: Regenerate iOS project
-        working-directory: ${{ env.APP_DIR }}
-        run: |
-          set -e
-          export PATH="$HOME/flutter/bin:$PATH"
-          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks ios/Runner.xcworkspace
-          rm -rf ios/Flutter/Flutter.podspec ios/Flutter/Flutter.framework
-          cd ios
-          rm -rf Runner.xcworkspace
-          cd ..
-          flutter clean
-          flutter pub get
-          flutter precache --ios
-          cd ios
-          pod install --repo-update
-          cd ..
 
       - name: Verify iOS project exists
         run: |

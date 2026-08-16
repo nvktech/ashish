@@ -99,12 +99,13 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
 
-      - name: Clean and regenerate iOS
+      - name: Clean and regenerate iOS with fresh pod workspace
         working-directory: ${{ env.APP_DIR }}
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
           rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          rm -rf ~/Library/Caches/CocoaPods
           rm -rf ios/Pods ios/Podfile.lock ios/.symlinks ios/Runner.xcworkspace
           rm -rf ios/Flutter/Flutter.podspec ios/Flutter/Flutter.framework
           rm -rf build/
@@ -123,7 +124,6 @@ jobs:
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
           pod repo update
-          rm -rf Pods Podfile.lock .symlinks
           pod install --repo-update --no-ansi
 
       - name: Verify iOS project exists

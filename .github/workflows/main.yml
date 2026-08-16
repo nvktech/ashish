@@ -108,11 +108,13 @@ jobs:
           set -e
           sudo gem install cocoapods --no-document
 
-      - name: Install iOS pods
+      - name: Refresh CocoaPods specs and reinstall iOS pods
         working-directory: ${{ env.APP_DIR }}/ios
         run: |
           set -e
           export PATH="$HOME/flutter/bin:$PATH"
+          pod repo update
+          rm -rf Pods Podfile.lock .symlinks
           pod install --repo-update --no-ansi
 
       - name: Verify iOS project exists

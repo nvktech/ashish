@@ -137,6 +137,12 @@ jobs:
           ls -la "$ios_dir"
           find "$ios_dir" -maxdepth 1 \( -name "*.xcworkspace" -o -name "*.xcodeproj" \) -print || true
 
+      - name: Clear Xcode module cache
+        run: |
+          set -e
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*/ModuleCache*
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*/Build/Intermediates.noindex/
+
       - name: Build iOS app for simulator (no codesign)
         working-directory: ${{ env.APP_DIR }}
         run: |
